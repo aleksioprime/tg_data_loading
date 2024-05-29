@@ -32,7 +32,7 @@ class TelegramParser:
         await self.client.start(self.phone)
 
     async def load_dialogs(self, size_chats=200):
-        logger.info("Загрузка диалогов...")
+        logger.info("Загрузка групп...")
         result = await self.client(GetDialogsRequest(
             offset_date=None,
             offset_id=0,
@@ -47,7 +47,7 @@ class TelegramParser:
                     self.groups.append(chat)
             except AttributeError:
                 continue
-        logger.info("Диалоги загружены")
+        logger.info(f"Загруженно групп: {len(self.groups)}")
 
     def choose_group(self):
         logger.info("Выбор группы...")
@@ -63,14 +63,13 @@ class TelegramParser:
             return self.groups[int(g_index) - 1]
 
     async def get_all_participants(self, target_group):
-        logger.info(f"Получение участников для группы: {target_group.title}")
-        logger.info(f"Получение участников группы: {target_group.title}")
+        logger.info(f"Получение участников группы {target_group.title}...")
         participants = await self.client.get_participants(target_group)
         logger.info(f"Количество участников получено: {len(participants)}")
         return participants
 
     async def get_messages(self, target_group, limit=100, total_count_limit=0):
-        logger.info(f"Получение сообщений в группе: {target_group.title}")
+        logger.info(f"Получение сообщений в группе {target_group.title}...")
         all_messages = []
         offset_id = 0
         total_messages = 0
@@ -96,9 +95,10 @@ class TelegramParser:
                 offset_id = messages[-1].id
                 total_messages += len(messages)
                 if total_count_limit != 0 and total_messages >= total_count_limit:
+                    logger.info(f"Лимит загруженный сообщений достигнут: {total_messages}")
                     break
                 await asyncio.sleep(1)
-        logger.info("Сообщения загружены")
+        logger.info(f"Сообщений загружено: {total_messages}")
         return all_messages
 
     async def save_to_csv(self, messages, target_group, filename=CSV_FILENAME):
