@@ -125,5 +125,5 @@ class TelegramParser:
                     message_user = ''
                 if message_user:
                     writer.writerow([id_user, name_user.get("username", ''), name_user.get("fullname", ''), message["date"], message_user])
-        logger.info("Данные сохранены в {filename}")
+        logger.info(f"Данные сохранены в {path}")
         return path
