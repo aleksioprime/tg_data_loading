@@ -12,6 +12,6 @@ formatter = logging.Formatter(
     "%(asctime)s %(levelname)-8s [%(filename)-16s:%(lineno)-5d] %(message)s"
 )
 
-fh = RotatingFileHandler(log_dir, maxBytes=5000000, backupCount=5)
+fh = RotatingFileHandler(log_file, maxBytes=5000000, backupCount=5)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
