@@ -8,8 +8,8 @@ def main():
     target_group = parser.choose_group()
     if target_group:
         messages = parser.get_messages(target_group)
-        parser.save_to_csv(messages, target_group, filename='messages.csv')
-        logger.info("Загрузка сообщений из групп Telegram успешно выполнена")
+        path = parser.save_to_csv(messages, target_group, filename='messages.csv')
+        print(f"Загрузка сообщений из группы {target_group.title} в файл {path} успешно выполнена!")
 
 if __name__ == "__main__":
     main()

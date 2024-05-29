@@ -12,6 +12,8 @@ from telethon.tl.types import PeerChannel
 import csv
 import re
 import os
+from tqdm import tqdm
+
 from config.logger import logger
 from config.tg_settings import CSV_FILENAME
 from src.utils import find_user
@@ -62,34 +64,37 @@ class TelegramParser:
         all_messages = []
         offset_id = 0
         total_messages = 0
-
-        while True:
-            history = self.client(GetHistoryRequest(
-                peer=target_group,
-                offset_id=offset_id,
-                offset_date=None,
-                add_offset=0,
-                limit=limit,
-                max_id=0,
-                min_id=0,
-                hash=0
-            ))
-            if not history.messages:
-                break
-            messages = history.messages
-            for message in messages:
-                all_messages.append(message.to_dict())
-            offset_id = messages[-1].id
-            total_messages += len(messages)
-            if total_count_limit != 0 and total_messages >= total_count_limit:
-                break
+        bar_format = "Загружено {n_fmt} сообщений | Прошло времени: {elapsed}"
+        with tqdm(desc="Загрузка сообщений", bar_format=bar_format) as pbar:
+            while True:
+                history = self.client(GetHistoryRequest(
+                    peer=target_group,
+                    offset_id=offset_id,
+                    offset_date=None,
+                    add_offset=0,
+                    limit=limit,
+                    max_id=0,
+                    min_id=0,
+                    hash=0
+                ))
+                if not history.messages:
+                    break
+                messages = history.messages
+                for message in messages:
+                    all_messages.append(message.to_dict())
+                    pbar.update(1)
+                offset_id = messages[-1].id
+                total_messages += len(messages)
+                if total_count_limit != 0 and total_messages >= total_count_limit:
+                    break
         logger.info("Сообщения загружены")
         return all_messages
 
     def save_to_csv(self, messages, target_group, filename=CSV_FILENAME):
         participants = self.get_all_participants(target_group)
         logger.info(f"Сохранение в файл export/{filename}...")
-        with open(os.path.join("export", filename), "w", encoding="UTF-8") as f:
+        path = os.path.join("export", filename)
+        with open(path, "w", encoding="UTF-8") as f:
             writer = csv.writer(f, delimiter=",", lineterminator="\n")
             writer.writerow(["user_id", "username", "fullname", "date", "message"])
             for message in messages:
@@ -105,3 +110,4 @@ class TelegramParser:
                 if name_user is not None and message_user:
                     writer.writerow([id_user, name_user["username"], name_user["fullname"], message["date"], message_user])
         logger.info("Данные сохранены в {filename}")
+        return path
