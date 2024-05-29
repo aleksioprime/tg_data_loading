@@ -8,4 +8,4 @@ def find_user(list_of_dicts, field_value):
                 "username": username.strip(),
                 "fullname": f"{first_name} {last_name}".strip()
             }
-    return None
+    return {}

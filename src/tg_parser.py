@@ -1,5 +1,5 @@
 # класс, позволяющий нам подключаться к клиенту мессенджера и работать с ним
-from telethon.sync import TelegramClient
+from telethon import TelegramClient
 # функция, позволяющая работать с сообщениями в чате
 from telethon.tl.functions.messages import GetDialogsRequest
 # конструктор для работы с InputPeer, который передаётся в качестве аргумента в GetDialogsRequest
@@ -12,6 +12,7 @@ from telethon.tl.types import PeerChannel
 import csv
 import re
 import os
+import asyncio
 from tqdm import tqdm
 
 from config.logger import logger
@@ -21,15 +22,18 @@ from src.utils import find_user
 
 class TelegramParser:
     def __init__(self, phone, api_id, api_hash):
-        print(phone, api_id, api_hash)
-        self.client = TelegramClient(phone, api_id, api_hash)
-        self.client.start()
+        logger.info("Инициализация клиента Telegram...")
+        self.client = TelegramClient('anon', api_id, api_hash)
+        self.phone = phone
         self.chats = []
         self.groups = []
 
-    def load_dialogs(self, size_chats=200):
+    async def start(self):
+        await self.client.start(self.phone)
+
+    async def load_dialogs(self, size_chats=200):
         logger.info("Загрузка диалогов...")
-        result = self.client(GetDialogsRequest(
+        result = await self.client(GetDialogsRequest(
             offset_date=None,
             offset_id=0,
             offset_peer=InputPeerEmpty(),
@@ -50,16 +54,22 @@ class TelegramParser:
         if not self.groups:
             logger.warning("Группы не найдены")
             return None
+        print("Группы:")
         for i, group in enumerate(self.groups):
-            print(f"{i} - {group.title}")
+            print(f"{i + 1} - {group.title}")
+        print("0 - Выход")
         g_index = input("Введите номер группы: ")
-        return self.groups[int(g_index)]
+        if g_index.isdigit() and g_index != '0':
+            return self.groups[int(g_index) - 1]
 
-    def get_all_participants(self, target_group):
+    async def get_all_participants(self, target_group):
+        logger.info(f"Получение участников для группы: {target_group.title}")
         logger.info(f"Получение участников группы: {target_group.title}")
-        return self.client.get_participants(target_group)
+        participants = await self.client.get_participants(target_group)
+        logger.info(f"Количество участников получено: {len(participants)}")
+        return participants
 
-    def get_messages(self, target_group, limit=100, total_count_limit=0):
+    async def get_messages(self, target_group, limit=100, total_count_limit=0):
         logger.info(f"Получение сообщений в группе: {target_group.title}")
         all_messages = []
         offset_id = 0
@@ -67,7 +77,7 @@ class TelegramParser:
         bar_format = "Загружено {n_fmt} сообщений | Прошло времени: {elapsed}"
         with tqdm(desc="Загрузка сообщений", bar_format=bar_format) as pbar:
             while True:
-                history = self.client(GetHistoryRequest(
+                history = await self.client(GetHistoryRequest(
                     peer=target_group,
                     offset_id=offset_id,
                     offset_date=None,
@@ -87,27 +97,33 @@ class TelegramParser:
                 total_messages += len(messages)
                 if total_count_limit != 0 and total_messages >= total_count_limit:
                     break
+                await asyncio.sleep(1)
         logger.info("Сообщения загружены")
         return all_messages
 
-    def save_to_csv(self, messages, target_group, filename=CSV_FILENAME):
-        participants = self.get_all_participants(target_group)
+    async def save_to_csv(self, messages, target_group, filename=CSV_FILENAME):
+        participants = await self.get_all_participants(target_group)
+        if not participants:
+            logger.warning("Не удалось получить участников группы")
+            return None
         logger.info(f"Сохранение в файл export/{filename}...")
         path = os.path.join("export", filename)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="UTF-8") as f:
             writer = csv.writer(f, delimiter=",", lineterminator="\n")
             writer.writerow(["user_id", "username", "fullname", "date", "message"])
             for message in messages:
+                name_user = {}
                 if 'from_id' in message and message['from_id'] is not None and 'user_id' in message['from_id']:
                     id_user = message['from_id']['user_id']
                     name_user = find_user(participants, id_user)
                 else:
-                    name_user = None
+                    id_user = None
                 if 'message' in message:
                     message_user = re.sub('[\t\r\n]', ' ', message['message'])
                 else:
                     message_user = ''
-                if name_user is not None and message_user:
-                    writer.writerow([id_user, name_user["username"], name_user["fullname"], message["date"], message_user])
+                if message_user:
+                    writer.writerow([id_user, name_user.get("username", ''), name_user.get("fullname", ''), message["date"], message_user])
         logger.info("Данные сохранены в {filename}")
         return path
