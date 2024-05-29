@@ -10,16 +10,16 @@ cd <путь к папке проекта>
 ```
 python -m pip install virtualenv
 ```
-3. Создайте виртуальное окружение (в папку venv)
+3. Создайте виртуальное окружение (в папке venv)
 ```
 python -m venv venv
 ```
 4. Запустите виртуальное окружение:
-Для Windows:
+- Для Windows:
 ```
 venv\Scripts\activate 
 ```
-Для MacOS:
+- Для MacOS:
 ```
 source venv/bin/activate
 ```
@@ -32,6 +32,7 @@ git clone https://github.com/aleksioprime/tg_data_loading.git .
 ```
 2. Установите необходимые билиотеки:
 ```
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 3. Откройте https://my.telegram.org/apps и зарегистрируйте своё приложение в Telegram, следуя предложенным шагам:
