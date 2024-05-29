@@ -11,6 +11,7 @@ from telethon.tl.types import PeerChannel
 
 import csv
 import re
+import os
 from config.logger import logger
 from config.tg_settings import CSV_FILENAME
 from src.utils import find_user
@@ -87,8 +88,8 @@ class TelegramParser:
 
     def save_to_csv(self, messages, target_group, filename=CSV_FILENAME):
         participants = self.get_all_participants(target_group)
-        logger.info(f"Сохранение в файл {filename}...")
-        with open(filename, "w", encoding="UTF-8") as f:
+        logger.info(f"Сохранение в файл export/{filename}...")
+        with open(os.path.join("export", filename), "w", encoding="UTF-8") as f:
             writer = csv.writer(f, delimiter=",", lineterminator="\n")
             writer.writerow(["user_id", "username", "fullname", "date", "message"])
             for message in messages:

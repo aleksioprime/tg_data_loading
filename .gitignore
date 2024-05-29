@@ -1,4 +1,6 @@
 logs
+export
+__pycache__
 .env
 .python-version
 *.session*

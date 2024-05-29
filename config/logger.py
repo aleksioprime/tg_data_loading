@@ -10,7 +10,3 @@ formatter = logging.Formatter(
 fh = RotatingFileHandler("logs/app.log", maxBytes=5000000, backupCount=5)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
-
-sh = logging.StreamHandler()
-sh.setFormatter(formatter)
-logger.addHandler(sh)
